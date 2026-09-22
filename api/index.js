@@ -4,8 +4,6 @@ const { body, validationResult } = require("express-validator");
 const app = express();
 app.use(express.json());
 
-const API_BASE = "/ht_02/api";
-
 const db = {
   blogs: [],
   posts: [],
@@ -56,8 +54,8 @@ const handleValidationErrors = (req, res, next) => {
   }
 
   const errors = result.array({ onlyFirstError: true }).map((error) => ({
-    field: error.path,
     message: error.msg,
+    field: error.path,
   }));
 
   res.status(400).send(createErrorsMessages(errors));
@@ -103,15 +101,13 @@ const postValidators = [
     .withMessage("Invalid blogId"),
 ];
 
-app.get("/", (req, res) => {
-  res.status(200).send("Hello world!");
-});
+const router = express.Router();
 
-app.get(`${API_BASE}/blogs`, (req, res) => {
+router.get("/blogs", (req, res) => {
   res.status(200).send(db.blogs);
 });
 
-app.post(`${API_BASE}/blogs`, requireAdminAuth, blogValidators, handleValidationErrors, (req, res) => {
+router.post("/blogs", requireAdminAuth, blogValidators, handleValidationErrors, (req, res) => {
   const blog = {
     id: String(blogIdCounter++),
     name: req.body.name.trim(),
@@ -123,7 +119,7 @@ app.post(`${API_BASE}/blogs`, requireAdminAuth, blogValidators, handleValidation
   res.status(201).send(blog);
 });
 
-app.get(`${API_BASE}/blogs/:id`, (req, res) => {
+router.get("/blogs/:id", (req, res) => {
   const foundBlog = db.blogs.find((blog) => blog.id === req.params.id);
   if (!foundBlog) {
     res.sendStatus(404);
@@ -132,7 +128,7 @@ app.get(`${API_BASE}/blogs/:id`, (req, res) => {
   res.status(200).send(foundBlog);
 });
 
-app.put(`${API_BASE}/blogs/:id`, requireAdminAuth, blogValidators, handleValidationErrors, (req, res) => {
+router.put("/blogs/:id", requireAdminAuth, blogValidators, handleValidationErrors, (req, res) => {
   const foundBlog = db.blogs.find((blog) => blog.id === req.params.id);
   if (!foundBlog) {
     res.sendStatus(404);
@@ -145,7 +141,7 @@ app.put(`${API_BASE}/blogs/:id`, requireAdminAuth, blogValidators, handleValidat
   res.sendStatus(204);
 });
 
-app.delete(`${API_BASE}/blogs/:id`, requireAdminAuth, (req, res) => {
+router.delete("/blogs/:id", requireAdminAuth, (req, res) => {
   const blogIndex = db.blogs.findIndex((blog) => blog.id === req.params.id);
   if (blogIndex === -1) {
     res.sendStatus(404);
@@ -157,11 +153,11 @@ app.delete(`${API_BASE}/blogs/:id`, requireAdminAuth, (req, res) => {
   res.sendStatus(204);
 });
 
-app.get(`${API_BASE}/posts`, (req, res) => {
+router.get("/posts", (req, res) => {
   res.status(200).send(db.posts);
 });
 
-app.post(`${API_BASE}/posts`, requireAdminAuth, postValidators, handleValidationErrors, (req, res) => {
+router.post("/posts", requireAdminAuth, postValidators, handleValidationErrors, (req, res) => {
   const blog = db.blogs.find((item) => item.id === req.body.blogId);
   const post = {
     id: String(postIdCounter++),
@@ -176,7 +172,7 @@ app.post(`${API_BASE}/posts`, requireAdminAuth, postValidators, handleValidation
   res.status(201).send(post);
 });
 
-app.get(`${API_BASE}/posts/:id`, (req, res) => {
+router.get("/posts/:id", (req, res) => {
   const foundPost = db.posts.find((post) => post.id === req.params.id);
   if (!foundPost) {
     res.sendStatus(404);
@@ -185,7 +181,7 @@ app.get(`${API_BASE}/posts/:id`, (req, res) => {
   res.status(200).send(foundPost);
 });
 
-app.put(`${API_BASE}/posts/:id`, requireAdminAuth, postValidators, handleValidationErrors, (req, res) => {
+router.put("/posts/:id", requireAdminAuth, postValidators, handleValidationErrors, (req, res) => {
   const foundPost = db.posts.find((post) => post.id === req.params.id);
   if (!foundPost) {
     res.sendStatus(404);
@@ -201,7 +197,7 @@ app.put(`${API_BASE}/posts/:id`, requireAdminAuth, postValidators, handleValidat
   res.sendStatus(204);
 });
 
-app.delete(`${API_BASE}/posts/:id`, requireAdminAuth, (req, res) => {
+router.delete("/posts/:id", requireAdminAuth, (req, res) => {
   const postIndex = db.posts.findIndex((post) => post.id === req.params.id);
   if (postIndex === -1) {
     res.sendStatus(404);
@@ -212,12 +208,20 @@ app.delete(`${API_BASE}/posts/:id`, requireAdminAuth, (req, res) => {
   res.sendStatus(204);
 });
 
-app.delete(`${API_BASE}/testing/all-data`, (req, res) => {
+router.delete("/testing/all-data", (req, res) => {
   db.blogs = [];
   db.posts = [];
   blogIdCounter = 1;
   postIdCounter = 1;
   res.sendStatus(204);
 });
+
+app.get("/", (req, res) => {
+  res.status(200).send("Hello world!");
+});
+
+app.use("", router);
+app.use("/ht_02/api", router);
+app.use("/api/index.js", router);
 
 module.exports = app;
